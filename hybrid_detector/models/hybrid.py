@@ -64,7 +64,7 @@ class HybridDetector:
             crop_origins.append((x1, y1))
 
         t2 = time.perf_counter()
-        refined = self.frcnn_model.predict_crops(crops)
+        refined = self.frcnn_model.predict_crops(crops, batch_size=self.config.frcnn_batch_size)
         t3 = time.perf_counter()
 
         final_boxes = []

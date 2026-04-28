@@ -7,6 +7,7 @@ class HybridConfig:
     proposal_conf: float = 0.10
     proposal_iou: float = 0.70
     max_proposals: int = 50
+    frcnn_batch_size: int = 4
     proposal_padding: float = 0.10
     refinement_score_thresh: float = 0.25
     final_score_thresh: float = 0.25

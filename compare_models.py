@@ -51,6 +51,7 @@ def main() -> None:
     parser.add_argument("--proposal-conf", type=float, default=0.10)
     parser.add_argument("--proposal-iou", type=float, default=0.70)
     parser.add_argument("--max-proposals", type=int, default=50)
+    parser.add_argument("--frcnn-batch-size", type=int, default=4)
     parser.add_argument("--proposal-padding", type=float, default=0.10)
     parser.add_argument("--refinement-score-thresh", type=float, default=0.25)
     parser.add_argument("--final-score-thresh", type=float, default=0.25)
@@ -66,6 +67,7 @@ def main() -> None:
         proposal_conf=args.proposal_conf,
         proposal_iou=args.proposal_iou,
         max_proposals=args.max_proposals,
+        frcnn_batch_size=args.frcnn_batch_size,
         proposal_padding=args.proposal_padding,
         refinement_score_thresh=args.refinement_score_thresh,
         final_score_thresh=args.final_score_thresh,

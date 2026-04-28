@@ -31,23 +31,29 @@ class FasterRCNNRefiner:
         self.class_map = class_map or {}
 
     @torch.inference_mode()
-    def predict_crops(self, crops: list[torch.Tensor]) -> list[dict[str, torch.Tensor]]:
+    def predict_crops(self, crops: list[torch.Tensor], batch_size: int = 4) -> list[dict[str, torch.Tensor]]:
         if not crops:
             return []
-        batch = [crop.to(self.device) for crop in crops]
-        outputs = self.model(batch)
         refined = []
-        for out in outputs:
-            labels = out["labels"].detach().cpu()
-            if self.class_map:
-                labels = torch.tensor([self.class_map.get(int(label), 0) for label in labels.tolist()], dtype=torch.long)
-            refined.append(
-                {
-                    "boxes": out["boxes"].detach().cpu(),
-                    "scores": out["scores"].detach().cpu(),
-                    "labels": labels,
-                }
-            )
+        batch_size = max(1, int(batch_size))
+        for start in range(0, len(crops), batch_size):
+            batch = [crop.to(self.device, non_blocking=True) for crop in crops[start : start + batch_size]]
+            outputs = self.model(batch)
+            for out in outputs:
+                labels = out["labels"].detach().cpu()
+                if self.class_map:
+                    labels = torch.tensor([self.class_map.get(int(label), 0) for label in labels.tolist()], dtype=torch.long)
+                refined.append(
+                    {
+                        "boxes": out["boxes"].detach().cpu(),
+                        "scores": out["scores"].detach().cpu(),
+                        "labels": labels,
+                    }
+                )
+            del batch
+            del outputs
+            if self.device.startswith("cuda"):
+                torch.cuda.empty_cache()
         return refined
 
 

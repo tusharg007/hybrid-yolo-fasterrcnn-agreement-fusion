@@ -11,7 +11,11 @@ from hybrid_detector.geometry import count_fp_fn
 def evaluate_detector(detector, dataset, config: EvalConfig) -> dict:
     from torchmetrics.detection.mean_ap import MeanAveragePrecision
 
-    metric = MeanAveragePrecision(iou_type="bbox")
+    metric = MeanAveragePrecision(
+        iou_type="bbox",
+        max_detection_thresholds=[100, 300, 1000],
+    )
+    metric.warn_on_many_detections = False
     total_fp = 0
     total_fn = 0
     timings = {"yolo": [], "crop": [], "frcnn": [], "post": [], "total": []}
