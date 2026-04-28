@@ -30,6 +30,22 @@ class FasterRCNNRefiner:
         self.device = device
         self.class_map = class_map or {}
 
+    def _map_labels(self, labels: torch.Tensor) -> torch.Tensor:
+        labels = labels.detach().cpu()
+        if self.class_map:
+            labels = torch.tensor([self.class_map.get(int(label), 0) for label in labels.tolist()], dtype=torch.long)
+        return labels
+
+    @torch.inference_mode()
+    def predict_full_image(self, image: torch.Tensor) -> dict[str, torch.Tensor]:
+        pred = self.model([image.to(self.device, non_blocking=True)])[0]
+        labels = self._map_labels(pred["labels"])
+        return {
+            "boxes": pred["boxes"].detach().cpu(),
+            "scores": pred["scores"].detach().cpu(),
+            "labels": labels,
+        }
+
     @torch.inference_mode()
     def predict_crops(self, crops: list[torch.Tensor], batch_size: int = 4) -> list[dict[str, torch.Tensor]]:
         if not crops:
@@ -40,9 +56,7 @@ class FasterRCNNRefiner:
             batch = [crop.to(self.device, non_blocking=True) for crop in crops[start : start + batch_size]]
             outputs = self.model(batch)
             for out in outputs:
-                labels = out["labels"].detach().cpu()
-                if self.class_map:
-                    labels = torch.tensor([self.class_map.get(int(label), 0) for label in labels.tolist()], dtype=torch.long)
+                labels = self._map_labels(out["labels"])
                 refined.append(
                     {
                         "boxes": out["boxes"].detach().cpu(),
@@ -66,16 +80,12 @@ class StandaloneFasterRCNNDetector:
         import time
 
         t0 = time.perf_counter()
-        pred = self.model.model([image.to(self.model.device)])[0]
+        pred = self.model.predict_full_image(image)
         t1 = time.perf_counter()
-        labels = pred["labels"].detach().cpu()
-        if self.model.class_map:
-            labels = torch.tensor([self.model.class_map.get(int(label), 0) for label in labels.tolist()], dtype=torch.long)
-
-        valid = labels > 0
+        valid = pred["labels"] > 0
         return DetectionOutput(
-            boxes=pred["boxes"].detach().cpu()[valid],
-            scores=pred["scores"].detach().cpu()[valid],
-            labels=labels[valid],
+            boxes=pred["boxes"][valid],
+            scores=pred["scores"][valid],
+            labels=pred["labels"][valid],
             timings={"yolo": 0.0, "crop": 0.0, "frcnn": t1 - t0, "post": 0.0, "total": t1 - t0},
         )

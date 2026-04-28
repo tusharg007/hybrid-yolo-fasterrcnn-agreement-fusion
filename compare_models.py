@@ -48,14 +48,20 @@ def main() -> None:
     parser.add_argument("--frcnn-weights", type=str, default="DEFAULT")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--max-images", type=int, default=None)
+    parser.add_argument("--hybrid-strategy", choices=["agreement_fusion", "crop_refine"], default="agreement_fusion")
     parser.add_argument("--proposal-conf", type=float, default=0.10)
     parser.add_argument("--proposal-iou", type=float, default=0.70)
     parser.add_argument("--max-proposals", type=int, default=50)
     parser.add_argument("--frcnn-batch-size", type=int, default=4)
     parser.add_argument("--proposal-padding", type=float, default=0.10)
+    parser.add_argument("--frcnn-score-thresh", type=float, default=0.05)
     parser.add_argument("--refinement-score-thresh", type=float, default=0.25)
     parser.add_argument("--final-score-thresh", type=float, default=0.25)
     parser.add_argument("--final-nms-iou", type=float, default=0.50)
+    parser.add_argument("--agreement-iou", type=float, default=0.50)
+    parser.add_argument("--unmatched-frcnn-score-thresh", type=float, default=0.60)
+    parser.add_argument("--unmatched-yolo-score-thresh", type=float, default=0.55)
+    parser.add_argument("--score-fusion", choices=["frcnn", "max", "weighted_sum", "geometric_mean"], default="weighted_sum")
     parser.add_argument("--fusion", choices=["nms", "wbf"], default="nms")
     parser.add_argument("--disable-yolo-fallback", action="store_true")
     args = parser.parse_args()
@@ -64,16 +70,22 @@ def main() -> None:
     yolo_map, frcnn_map = build_class_maps(dataset)
     eval_config = EvalConfig(device=args.device, max_images=args.max_images)
     hybrid_config = HybridConfig(
+        strategy=args.hybrid_strategy,
         proposal_conf=args.proposal_conf,
         proposal_iou=args.proposal_iou,
         max_proposals=args.max_proposals,
         frcnn_batch_size=args.frcnn_batch_size,
         proposal_padding=args.proposal_padding,
+        frcnn_score_thresh=args.frcnn_score_thresh,
         refinement_score_thresh=args.refinement_score_thresh,
         final_score_thresh=args.final_score_thresh,
         final_nms_iou=args.final_nms_iou,
         fusion=args.fusion,
         use_yolo_fallback=not args.disable_yolo_fallback,
+        agreement_iou=args.agreement_iou,
+        unmatched_frcnn_score_thresh=args.unmatched_frcnn_score_thresh,
+        unmatched_yolo_score_thresh=args.unmatched_yolo_score_thresh,
+        score_fusion=args.score_fusion,
     )
 
     yolo_detector = StandaloneYOLODetector(weights=args.yolo_weights, device=args.device, class_map=yolo_map)

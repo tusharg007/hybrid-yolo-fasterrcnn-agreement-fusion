@@ -4,6 +4,7 @@ import time
 from dataclasses import dataclass
 
 import torch
+from torchvision.ops import box_iou
 
 from hybrid_detector.config import HybridConfig
 from hybrid_detector.geometry import (
@@ -31,6 +32,94 @@ class HybridDetector:
 
     @torch.inference_mode()
     def predict(self, image: torch.Tensor) -> DetectionOutput:
+        if self.config.strategy == "crop_refine":
+            return self._predict_crop_refine(image)
+        return self._predict_agreement_fusion(image)
+
+    def _predict_agreement_fusion(self, image: torch.Tensor) -> DetectionOutput:
+        t0 = time.perf_counter()
+        yolo = self.yolo_model.predict(
+            image=image,
+            conf=self.config.proposal_conf,
+            iou=self.config.proposal_iou,
+            max_det=self.config.max_proposals,
+        )
+        t1 = time.perf_counter()
+
+        frcnn = self.frcnn_model.predict_full_image(image)
+        t2 = time.perf_counter()
+
+        frcnn_keep = frcnn["scores"] >= self.config.frcnn_score_thresh
+        frcnn_boxes = frcnn["boxes"][frcnn_keep]
+        frcnn_scores = frcnn["scores"][frcnn_keep]
+        frcnn_labels = frcnn["labels"][frcnn_keep]
+
+        yolo_boxes = yolo["boxes"]
+        yolo_scores = yolo["scores"]
+        yolo_labels = yolo["labels"]
+
+        final_boxes: list[torch.Tensor] = []
+        final_scores: list[torch.Tensor] = []
+        final_labels: list[torch.Tensor] = []
+        matched_yolo = torch.zeros((len(yolo_boxes),), dtype=torch.bool)
+
+        for box, score, label in zip(frcnn_boxes, frcnn_scores, frcnn_labels):
+            if int(label.item()) <= 0:
+                continue
+
+            same_label = torch.nonzero(yolo_labels == label, as_tuple=False).squeeze(1)
+            matched = False
+            if same_label.numel() > 0:
+                overlaps = box_iou(box.unsqueeze(0), yolo_boxes[same_label])[0]
+                best_local = int(torch.argmax(overlaps).item())
+                best_iou = float(overlaps[best_local].item())
+                if best_iou >= self.config.agreement_iou:
+                    yolo_idx = int(same_label[best_local].item())
+                    matched_yolo[yolo_idx] = True
+                    fused_box = self._fuse_boxes(
+                        frcnn_box=box,
+                        frcnn_score=float(score.item()),
+                        yolo_box=yolo_boxes[yolo_idx],
+                        yolo_score=float(yolo_scores[yolo_idx].item()),
+                    )
+                    fused_score = self._fuse_scores(
+                        frcnn_score=float(score.item()),
+                        yolo_score=float(yolo_scores[yolo_idx].item()),
+                    )
+                    final_boxes.append(fused_box)
+                    final_scores.append(torch.tensor(fused_score, dtype=torch.float32))
+                    final_labels.append(label)
+                    matched = True
+
+            if not matched and float(score.item()) >= self.config.unmatched_frcnn_score_thresh:
+                final_boxes.append(box.clone())
+                final_scores.append(score.clone())
+                final_labels.append(label.clone())
+
+        if self.config.use_yolo_fallback:
+            for idx, (box, score, label) in enumerate(zip(yolo_boxes, yolo_scores, yolo_labels)):
+                if matched_yolo[idx]:
+                    continue
+                if float(score.item()) < self.config.unmatched_yolo_score_thresh or int(label.item()) <= 0:
+                    continue
+                final_boxes.append(box.clone())
+                final_scores.append(score.clone())
+                final_labels.append(label.clone())
+
+        return self._finalize(
+            final_boxes=final_boxes,
+            final_scores=final_scores,
+            final_labels=final_labels,
+            timings={
+                "yolo": t1 - t0,
+                "crop": 0.0,
+                "frcnn": t2 - t1,
+                "post": 0.0,
+                "total": t2 - t0,
+            },
+        )
+
+    def _predict_crop_refine(self, image: torch.Tensor) -> DetectionOutput:
         _, height, width = image.shape
 
         t0 = time.perf_counter()
@@ -94,7 +183,10 @@ class HybridDetector:
             for box, score, label in zip(boxes, scores, labels):
                 if int(label.item()) <= 0:
                     continue
-                fused_score = float(score.item()) * float(proposal_score)
+                fused_score = self._fuse_scores(
+                    frcnn_score=float(score.item()),
+                    yolo_score=float(proposal_score),
+                )
                 final_boxes.append(box)
                 final_scores.append(torch.tensor(fused_score, dtype=torch.float32))
                 final_labels.append(label)
@@ -106,14 +198,46 @@ class HybridDetector:
                 final_scores.append(score.clone())
                 final_labels.append(label.clone())
 
-        if not final_boxes:
-            timings = {
+        return self._finalize(
+            final_boxes=final_boxes,
+            final_scores=final_scores,
+            final_labels=final_labels,
+            timings={
                 "yolo": t1 - t0,
                 "crop": t2 - t1,
                 "frcnn": t3 - t2,
                 "post": 0.0,
                 "total": t3 - t0,
-            }
+            },
+        )
+
+    def _fuse_boxes(
+        self,
+        frcnn_box: torch.Tensor,
+        frcnn_score: float,
+        yolo_box: torch.Tensor,
+        yolo_score: float,
+    ) -> torch.Tensor:
+        total = max(frcnn_score + yolo_score, 1e-6)
+        return ((frcnn_box * frcnn_score) + (yolo_box * yolo_score)) / total
+
+    def _fuse_scores(self, frcnn_score: float, yolo_score: float) -> float:
+        if self.config.score_fusion == "frcnn":
+            return frcnn_score
+        if self.config.score_fusion == "max":
+            return max(frcnn_score, yolo_score)
+        if self.config.score_fusion == "geometric_mean":
+            return float((frcnn_score * yolo_score) ** 0.5)
+        return float((0.75 * frcnn_score) + (0.25 * yolo_score))
+
+    def _finalize(
+        self,
+        final_boxes: list[torch.Tensor],
+        final_scores: list[torch.Tensor],
+        final_labels: list[torch.Tensor],
+        timings: dict[str, float],
+    ) -> DetectionOutput:
+        if not final_boxes:
             return DetectionOutput(
                 boxes=torch.zeros((0, 4), dtype=torch.float32),
                 scores=torch.zeros((0,), dtype=torch.float32),
@@ -135,13 +259,6 @@ class HybridDetector:
         labels = labels[valid_labels]
 
         if boxes.numel() == 0:
-            timings = {
-                "yolo": t1 - t0,
-                "crop": t2 - t1,
-                "frcnn": t3 - t2,
-                "post": 0.0,
-                "total": t3 - t0,
-            }
             return DetectionOutput(
                 boxes=torch.zeros((0, 4), dtype=torch.float32),
                 scores=torch.zeros((0,), dtype=torch.float32),
@@ -149,7 +266,7 @@ class HybridDetector:
                 timings=timings,
             )
 
-        t4 = time.perf_counter()
+        t_post_start = time.perf_counter()
         if self.config.fusion == "wbf":
             boxes, scores, labels = weighted_box_fusion(
                 boxes=boxes,
@@ -159,13 +276,8 @@ class HybridDetector:
                 skip_box_thresh=self.config.wbf_skip_box_thresh,
             )
         keep = class_aware_nms(boxes, scores, labels, self.config.final_nms_iou)
-        t5 = time.perf_counter()
-
-        timings = {
-            "yolo": t1 - t0,
-            "crop": t2 - t1,
-            "frcnn": t3 - t2,
-            "post": t5 - t4,
-            "total": t5 - t0,
-        }
+        t_post_end = time.perf_counter()
+        timings = dict(timings)
+        timings["post"] = t_post_end - t_post_start
+        timings["total"] += timings["post"]
         return DetectionOutput(boxes=boxes[keep], scores=scores[keep], labels=labels[keep], timings=timings)
