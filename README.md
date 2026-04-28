@@ -126,3 +126,19 @@ Your table already suggests:
 3. The Faster R-CNN stage is still dominating runtime, which explains why hybrid `FPS` is still close to Faster R-CNN.
 
 That combination is not impossible. It is exactly what a mis-tuned cascade looks like.
+
+## Reporting Assets
+
+To generate CSV summaries, comparison plots, and a markdown report from experiment outputs:
+
+```bash
+python generate_report_assets.py
+```
+
+This writes:
+
+- `reports/tables/final_model_comparison.csv`
+- `reports/tables/experiment_runs.csv`
+- `reports/tables/stage_timing_breakdown.csv`
+- `reports/figures/*.png`
+- `reports/FINAL_REPORT.md`

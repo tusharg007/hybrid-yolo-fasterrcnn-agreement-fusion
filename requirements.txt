@@ -7,3 +7,5 @@ pycocotools
 tqdm
 Pillow
 numpy
+pandas
+matplotlib

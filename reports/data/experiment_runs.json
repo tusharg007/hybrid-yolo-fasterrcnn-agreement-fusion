@@ -1,0 +1,280 @@
+{
+  "project_title": "Hybrid Object Detection: YOLO + Faster R-CNN",
+  "selected_final_run_id": "voc100_agreement_variant_b",
+  "runs": [
+    {
+      "run_id": "voc100_agreement_default",
+      "dataset": "VOC 2012",
+      "evaluation_scope": "100-image validation subset",
+      "hybrid_config": {
+        "strategy": "agreement_fusion",
+        "proposal_conf": 0.1,
+        "proposal_iou": 0.7,
+        "max_proposals": 50,
+        "frcnn_score_thresh": 0.05,
+        "agreement_iou": 0.5,
+        "unmatched_frcnn_score_thresh": 0.6,
+        "unmatched_yolo_score_thresh": 0.55,
+        "score_fusion": "weighted_sum",
+        "final_score_thresh": 0.25,
+        "final_nms_iou": 0.5,
+        "fusion": "nms"
+      },
+      "results": {
+        "yolo": {
+          "mAP@0.5": 0.7303368449211121,
+          "mAP@0.5:0.95": 0.5632873177528381,
+          "mean_inf_time_s": 0.024054251359998488,
+          "fps": 41.57269270341835,
+          "false_positives": 6523,
+          "false_negatives": 16,
+          "stage_timings": {
+            "yolo": 0.024054251359998488,
+            "crop": 0.0,
+            "frcnn": 0.0,
+            "post": 0.0,
+            "total": 0.024054251359998488
+          },
+          "speedup_vs_frcnn": 5.8206700688621895
+        },
+        "frcnn": {
+          "mAP@0.5": 0.8808928728103638,
+          "mAP@0.5:0.95": 0.682134747505188,
+          "mean_inf_time_s": 0.14001186092003082,
+          "fps": 7.142252045140376,
+          "false_positives": 1305,
+          "false_negatives": 4,
+          "stage_timings": {
+            "yolo": 0.0,
+            "crop": 0.0,
+            "frcnn": 0.14001186092003082,
+            "post": 0.0,
+            "total": 0.14001186092003082
+          },
+          "speedup_vs_frcnn": 1.0
+        },
+        "hybrid": {
+          "mAP@0.5": 0.8474690318107605,
+          "mAP@0.5:0.95": 0.6849425435066223,
+          "mean_inf_time_s": 0.15130371207003462,
+          "fps": 6.609223173170567,
+          "false_positives": 175,
+          "false_negatives": 18,
+          "stage_timings": {
+            "yolo": 0.014300672740009759,
+            "crop": 0.0,
+            "frcnn": 0.13677391572000488,
+            "post": 0.0002291236100199967,
+            "total": 0.15130371207003462
+          },
+          "speedup_vs_frcnn": 0.9253696357114022
+        }
+      }
+    },
+    {
+      "run_id": "voc50_crop_refine_baseline",
+      "dataset": "VOC 2012",
+      "evaluation_scope": "50-image validation subset",
+      "hybrid_config": {
+        "strategy": "crop_refine",
+        "proposal_conf": 0.1,
+        "proposal_iou": 0.7,
+        "max_proposals": 15,
+        "frcnn_batch_size": 1,
+        "proposal_padding": 0.1,
+        "refinement_score_thresh": 0.25,
+        "final_score_thresh": 0.25,
+        "final_nms_iou": 0.5,
+        "fusion": "nms"
+      },
+      "results": {
+        "yolo": {
+          "mAP@0.5": 0.7645503878593445,
+          "mAP@0.5:0.95": 0.6110150814056396,
+          "mean_inf_time_s": 0.03319982548002372,
+          "fps": 30.1206402606453,
+          "false_positives": 3462,
+          "false_negatives": 11,
+          "stage_timings": {
+            "yolo": 0.03319982548002372,
+            "crop": 0.0,
+            "frcnn": 0.0,
+            "post": 0.0,
+            "total": 0.03319982548002372
+          },
+          "speedup_vs_frcnn": 4.297890133366099
+        },
+        "frcnn": {
+          "mAP@0.5": 0.9198179841041565,
+          "mAP@0.5:0.95": 0.7513105869293213,
+          "mean_inf_time_s": 0.14268920236007035,
+          "fps": 7.008238769718125,
+          "false_positives": 592,
+          "false_negatives": 1,
+          "stage_timings": {
+            "yolo": 0.0,
+            "crop": 0.0,
+            "frcnn": 0.14268920236007035,
+            "post": 0.0,
+            "total": 0.14268920236007035
+          },
+          "speedup_vs_frcnn": 1.0
+        },
+        "hybrid": {
+          "mAP@0.5": 0.7867934703826904,
+          "mAP@0.5:0.95": 0.6155247092247009,
+          "mean_inf_time_s": 0.572087441320009,
+          "fps": 1.7479845348337741,
+          "false_positives": 486,
+          "false_negatives": 9,
+          "stage_timings": {
+            "yolo": 0.015812672959991687,
+            "crop": 0.00020998750002945599,
+            "frcnn": 0.5556947724599468,
+            "post": 0.00037000840004111526,
+            "total": 0.572087441320009
+          },
+          "speedup_vs_frcnn": 0.24941851901316983
+        }
+      }
+    },
+    {
+      "run_id": "voc100_agreement_variant_b",
+      "dataset": "VOC 2012",
+      "evaluation_scope": "100-image validation subset",
+      "hybrid_config": {
+        "strategy": "agreement_fusion",
+        "proposal_conf": 0.05,
+        "proposal_iou": 0.7,
+        "max_proposals": 100,
+        "frcnn_score_thresh": 0.05,
+        "agreement_iou": 0.45,
+        "unmatched_frcnn_score_thresh": 0.55,
+        "unmatched_yolo_score_thresh": 0.6,
+        "score_fusion": "frcnn",
+        "final_score_thresh": 0.2,
+        "final_nms_iou": 0.5,
+        "fusion": "nms"
+      },
+      "results": {
+        "yolo": {
+          "mAP@0.5": 0.7303368449211121,
+          "mAP@0.5:0.95": 0.5632873177528381,
+          "mean_inf_time_s": 0.023328013359996475,
+          "fps": 42.86691646511262,
+          "false_positives": 6523,
+          "false_negatives": 16,
+          "stage_timings": {
+            "yolo": 0.023328013359996475,
+            "crop": 0.0,
+            "frcnn": 0.0,
+            "post": 0.0,
+            "total": 0.023328013359996475
+          },
+          "speedup_vs_frcnn": 6.35295647610306
+        },
+        "frcnn": {
+          "mAP@0.5": 0.8808928728103638,
+          "mAP@0.5:0.95": 0.682134747505188,
+          "mean_inf_time_s": 0.1482018535500083,
+          "fps": 6.747553934354581,
+          "false_positives": 1305,
+          "false_negatives": 4,
+          "stage_timings": {
+            "yolo": 0.0,
+            "crop": 0.0,
+            "frcnn": 0.1482018535500083,
+            "post": 0.0,
+            "total": 0.1482018535500083
+          },
+          "speedup_vs_frcnn": 1.0
+        },
+        "hybrid": {
+          "mAP@0.5": 0.8599088191986084,
+          "mAP@0.5:0.95": 0.6873204112052917,
+          "mean_inf_time_s": 0.1586637569000004,
+          "fps": 6.302636591608386,
+          "false_positives": 226,
+          "false_negatives": 15,
+          "stage_timings": {
+            "yolo": 0.014019904649999262,
+            "crop": 0.0,
+            "frcnn": 0.1444183358700093,
+            "post": 0.00022551637999185915,
+            "total": 0.1586637569000004
+          },
+          "speedup_vs_frcnn": 0.9340624251284695
+        }
+      }
+    },
+    {
+      "run_id": "voc100_agreement_variant_c",
+      "dataset": "VOC 2012",
+      "evaluation_scope": "100-image validation subset",
+      "hybrid_config": {
+        "strategy": "agreement_fusion",
+        "proposal_conf": 0.1,
+        "proposal_iou": 0.7,
+        "max_proposals": 50,
+        "frcnn_score_thresh": 0.05,
+        "agreement_iou": 0.55,
+        "unmatched_frcnn_score_thresh": 0.65,
+        "unmatched_yolo_score_thresh": 0.65,
+        "score_fusion": "max",
+        "final_score_thresh": 0.25,
+        "final_nms_iou": 0.5,
+        "fusion": "nms"
+      },
+      "results": {
+        "yolo": {
+          "mAP@0.5": 0.7303368449211121,
+          "mAP@0.5:0.95": 0.5632873177528381,
+          "mean_inf_time_s": 0.023157336469944313,
+          "fps": 43.18285919012709,
+          "false_positives": 6523,
+          "false_negatives": 16,
+          "stage_timings": {
+            "yolo": 0.023157336469944313,
+            "crop": 0.0,
+            "frcnn": 0.0,
+            "post": 0.0,
+            "total": 0.023157336469944313
+          },
+          "speedup_vs_frcnn": 6.493801028248138
+        },
+        "frcnn": {
+          "mAP@0.5": 0.8808928728103638,
+          "mAP@0.5:0.95": 0.682134747505188,
+          "mean_inf_time_s": 0.1503791353800125,
+          "fps": 6.649858688660303,
+          "false_positives": 1305,
+          "false_negatives": 4,
+          "stage_timings": {
+            "yolo": 0.0,
+            "crop": 0.0,
+            "frcnn": 0.1503791353800125,
+            "post": 0.0,
+            "total": 0.1503791353800125
+          },
+          "speedup_vs_frcnn": 1.0
+        },
+        "hybrid": {
+          "mAP@0.5": 0.8581690192222595,
+          "mAP@0.5:0.95": 0.6861410737037659,
+          "mean_inf_time_s": 0.16189114090998827,
+          "fps": 6.1769902564094075,
+          "false_positives": 159,
+          "false_negatives": 18,
+          "stage_timings": {
+            "yolo": 0.014323581290009315,
+            "crop": 0.0,
+            "frcnn": 0.14733380098998622,
+            "post": 0.00023375862999273523,
+            "total": 0.16189114090998827
+          },
+          "speedup_vs_frcnn": 0.9288904540096085
+        }
+      }
+    }
+  ]
+}
