@@ -1,5 +1,17 @@
 # Hybrid Object Detection: YOLO Proposals + Faster R-CNN Refinement
 
+This was an academic research project under **Dr. Jagdish Chakole**.
+
+## Contributors
+
+- Tushar Ghosh (BT23CSD043)
+- Ritesh Singh (BT23CSD003)
+- Satyam Deo (BT23CSD004)
+- Arjit Tiwari (BT23CSD008)
+- Rajdeep Banerjee (BT23CSD029)
+
+---
+
 This project implements a corrected hybrid object detection pipeline that uses:
 
 - `YOLO` for fast region proposal generation
