@@ -21,7 +21,7 @@ This project implements a corrected hybrid object detection pipeline that uses:
 
 ## Why your current hybrid metrics look wrong
 
-Your reported pattern is consistent with a recall bottleneck in the proposal stage:
+Our reported pattern is consistent with a recall bottleneck in the proposal stage:
 
 - `false positives` are much lower because YOLO proposals are filtering many candidates early
 - `false negatives` are much higher because anything YOLO fails to propose can never be recovered by Faster R-CNN
@@ -131,7 +131,7 @@ If proposal recall is low, the rest of the hybrid pipeline cannot recover.
 
 ## Interpreting your current results
 
-Your table already suggests:
+Our table already suggests:
 
 1. The hybrid stage is over-pruning detections early, which explains the very low false positives.
 2. Proposal recall is too low, which explains the large increase in false negatives and the `mAP` drop.
