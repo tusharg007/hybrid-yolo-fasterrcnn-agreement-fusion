@@ -19,7 +19,7 @@ This project implements a corrected hybrid object detection pipeline that uses:
 - class-aware post-processing with `NMS` or optional `Weighted Box Fusion`
 - unified evaluation for `mAP`, latency, `FPS`, false positives, and false negatives
 
-## Why your current hybrid metrics look wrong
+## Why our current hybrid metrics look wrong
 
 Our reported pattern is consistent with a recall bottleneck in the proposal stage:
 
